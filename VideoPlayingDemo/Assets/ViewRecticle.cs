@@ -8,9 +8,11 @@ public class ViewRecticle : MonoBehaviour
     private Rect centerRect;
     public bool reticleOn;
 
+    public int recticleSize;
+
 	void Start()
 	{
-	    centerRect = new Rect((Screen.width - reticleTexture.width) / 2, (Screen.height - reticleTexture.height) / 2, reticleTexture.width, reticleTexture.height);
+	    centerRect = new Rect((Screen.width - recticleSize) / 2, (Screen.height - recticleSize) / 2, recticleSize, recticleSize);
     }
 	
 	void OnGUI()

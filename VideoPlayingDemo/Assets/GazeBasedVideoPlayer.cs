@@ -1,9 +1,9 @@
 ﻿using UnityEngine;
+using UnityEngine.VR.WSA.Input;
 using System.Collections;
 
 public class GazeBasedVideoPlayer : MonoBehaviour
 {
-    public Camera mainCamera;
     public VideoPlayManager playManager;
 
     public float startDistance;
@@ -16,37 +16,46 @@ public class GazeBasedVideoPlayer : MonoBehaviour
     public Material movieStillMaterialHighlighted;
 
     private Renderer myRenderer;
-    private MeshCollider myCollider;
+    public BoxCollider myCollider;
     private AudioSource myAudioSource;
     public MovieTexture movieTexture;
+    public MeshRenderer checkmarkRenderer;
 
     private bool hadPlayerGazeLastFrame = false;
     private float mostRecentGazeAcquisitionTime = 0.0f;
 
     public float gazeTimeUntilPlayStarts;
 
+    public bool shouldBePlaying = false;
+
     void Start()
 	{
         // Position at startDistance from camera, at startArc along
         // a circular arc, and reorient to face the camera
         Vector3 planePosOffset = new Vector3(startDistance * Mathf.Sin(startArc * Mathf.Deg2Rad), 0.0f, startDistance * Mathf.Cos(startArc * Mathf.Deg2Rad));
-        transform.position = mainCamera.transform.position + planePosOffset;
-        transform.rotation = Quaternion.LookRotation(mainCamera.transform.position - transform.position) * Quaternion.Euler(90.0f, 0.0f, 0.0f);
+        transform.position = Camera.main.transform.position + planePosOffset;
+        transform.rotation = Quaternion.LookRotation(Camera.main.transform.position - transform.position) * Quaternion.Euler(90.0f, 0.0f, 0.0f);
 
         //// Move the highlight plane just in front of the movie texture plane
-        //highlightPlane.position = planePosOffset + highlightPlaneDistanceOffset * (mainCamera.transform.position - transform.position);
-        //highlightPlane.rotation = Quaternion.LookRotation(mainCamera.transform.position - transform.position) * Quaternion.Euler(90.0f, 0.0f, 0.0f);
+        //highlightPlane.position = planePosOffset + highlightPlaneDistanceOffset * (Camera.main.transform.position - transform.position);
+        //highlightPlane.rotation = Quaternion.LookRotation(Camera.main.transform.position - transform.position) * Quaternion.Euler(90.0f, 0.0f, 0.0f);
 
         // Set material to unselected still
         myRenderer = GetComponent<Renderer>();
         myRenderer.material = movieStillMaterial;
 
-        myCollider = GetComponent<MeshCollider>();
+        myCollider = GetComponent<BoxCollider>();
+
         myAudioSource = GetComponent<AudioSource>();
     }
 	
 	void Update()
 	{
+        //if (movieTexture.isPlaying)
+        //{
+        //    Debug.Log("playing");
+        //}
+
 	    if (HavePlayerGaze())
         {
             if (hadPlayerGazeLastFrame)
@@ -57,8 +66,23 @@ public class GazeBasedVideoPlayer : MonoBehaviour
                 {
                     if (!movieTexture.isPlaying)
                     {
+                        if (shouldBePlaying)
+                        {
+                            // Looks like we've stopped! Mark as stopped
+                            MarkAsViewed();
+                            StopPlaying();
+                        }
+                        else
+                        {
+                            // We need to start up playback
+                            StartPlaying();
+                        }
                         //playManager.StopAllPlayback();
-                        StartPlaying();
+                        
+                    }
+                    else
+                    {
+                        // Already playing
                     }
                 }
             }
@@ -70,7 +94,7 @@ public class GazeBasedVideoPlayer : MonoBehaviour
 
                 myRenderer.material = movieStillMaterialHighlighted;
 
-                Debug.Log("Just got player gaze on " + this.name);
+                //Debug.Log("Just got player gaze on " + this.name);
             }
         }
         else
@@ -84,36 +108,57 @@ public class GazeBasedVideoPlayer : MonoBehaviour
 
     private bool HavePlayerGaze()
     {
-        Ray cameraRay = new Ray(mainCamera.transform.position, mainCamera.transform.forward);
         RaycastHit hitInfo;
 
-        return (myCollider.Raycast(cameraRay, out hitInfo, Mathf.Infinity));
+        if (Physics.Raycast(Camera.main.transform.position, Camera.main.transform.forward, out hitInfo, 20.0f))
+        {
+            //Debug.Log("collision: " + hitInfo.collider.name);
+            if (hitInfo.collider.name == this.name)
+            {
+                // Check that we're actually facing the object in question
+                //Debug.Log("Dot with " + this.name + ": " + Vector3.Dot(hitInfo.collider.transform.up, Camera.main.transform.forward));
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private void StartPlaying()
     {
-        Debug.Log("Starting play for " + this.name);
+        //Debug.Log("Starting play for " + this.name);
 
         myRenderer.material = movieMaterial;
         movieTexture.Play();
-        myAudioSource.UnPause();
+        myAudioSource.Play();
+
+        shouldBePlaying = true;
     }
 
     public void PausePlaying()
     {
-        Debug.Log("Pausing play for " + this.name);
+        //Debug.Log("Pausing play for " + this.name);
 
         myRenderer.material = movieStillMaterial;
         movieTexture.Pause();
         myAudioSource.Pause();
+
+        shouldBePlaying = false;
     }
 
     public void StopPlaying()
     {
-        Debug.Log("Stopping play for " + this.name);
+        //Debug.Log("Stopping play for " + this.name);
 
         myRenderer.material = movieStillMaterial;
         movieTexture.Stop();
         myAudioSource.Stop();
+
+        //shouldBePlaying = false;
+    }
+
+    private void MarkAsViewed()
+    {
+        checkmarkRenderer.enabled = true;
     }
 }
