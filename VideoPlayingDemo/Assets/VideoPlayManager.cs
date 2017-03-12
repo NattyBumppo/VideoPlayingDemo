@@ -12,8 +12,8 @@ public struct AngleHeightElevation
 
 public class VideoPlayManager : MonoBehaviour
 {
-
-    public List<GazeBasedVideoPlayer> videoPlayers;
+    public Transform videoClipParent;
+    public GazeBasedVideoPlayer[] videoPlayers;
 
     public MeshRenderer cursorRenderer;
 
@@ -32,6 +32,8 @@ public class VideoPlayManager : MonoBehaviour
 
     void Awake()
     {
+        videoPlayers = videoClipParent.GetComponentsInChildren<GazeBasedVideoPlayer>();
+
         currentVideoPanelAngle = 0.0f;
         currentVideoPanelElevation = videoPanelStartElevation;
         currentVideoPanelDistance = videoPanelStartDistance;
@@ -73,7 +75,7 @@ public class VideoPlayManager : MonoBehaviour
 
     private void EnableCollidersBasedOnCameraDirection()
     {
-        for (int i = 0; i < videoPlayers.Count; i++)
+        for (int i = 0; i < videoPlayers.Length; i++)
         {
             if (Vector3.Dot(videoPlayers[i].transform.up, Camera.main.transform.forward) < -0.4f)
             {
@@ -92,7 +94,7 @@ public class VideoPlayManager : MonoBehaviour
     {
         bool currentlyPlaying = false;
 
-        for (int i = 0; i < videoPlayers.Count; i++)
+        for (int i = 0; i < videoPlayers.Length; i++)
         {
             if (videoPlayers[i].movieTexture.isPlaying)
             {
@@ -105,7 +107,7 @@ public class VideoPlayManager : MonoBehaviour
 
     public void PauseAllPlayback()
     {
-        for (int i = 0; i < videoPlayers.Count; i++)
+        for (int i = 0; i < videoPlayers.Length; i++)
         {
             videoPlayers[i].PausePlaying();
         }
@@ -113,7 +115,7 @@ public class VideoPlayManager : MonoBehaviour
 
     public void StopAllPlayback()
     {
-        for (int i = 0; i < videoPlayers.Count; i++)
+        for (int i = 0; i < videoPlayers.Length; i++)
         {
             videoPlayers[i].StopPlaying();
         }
