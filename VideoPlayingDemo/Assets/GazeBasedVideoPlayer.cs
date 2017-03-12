@@ -6,8 +6,9 @@ public class GazeBasedVideoPlayer : MonoBehaviour
 {
     public VideoPlayManager playManager;
 
-    public float startDistance;
-    public float startArc;
+    private float panelDistance;
+    private float panelArc;
+    private float panelY;
     //public Transform highlightPlane;
     //private float highlightPlaneDistanceOffset = 0.01f;
 
@@ -19,6 +20,7 @@ public class GazeBasedVideoPlayer : MonoBehaviour
     public BoxCollider myCollider;
     private AudioSource myAudioSource;
     public MovieTexture movieTexture;
+    
     public MeshRenderer checkmarkRenderer;
 
     private bool hadPlayerGazeLastFrame = false;
@@ -27,14 +29,27 @@ public class GazeBasedVideoPlayer : MonoBehaviour
     public float gazeTimeUntilPlayStarts;
 
     public bool shouldBePlaying = false;
+    public bool ignoreAutomaticPlacement = false;
 
     void Start()
 	{
-        // Position at startDistance from camera, at startArc along
-        // a circular arc, and reorient to face the camera
-        Vector3 planePosOffset = new Vector3(startDistance * Mathf.Sin(startArc * Mathf.Deg2Rad), 0.0f, startDistance * Mathf.Cos(startArc * Mathf.Deg2Rad));
-        transform.position = Camera.main.transform.position + planePosOffset;
-        transform.rotation = Quaternion.LookRotation(Camera.main.transform.position - transform.position) * Quaternion.Euler(90.0f, 0.0f, 0.0f);
+        if (!ignoreAutomaticPlacement)
+        {
+            AngleHeightElevation angleHeightElevation = playManager.GetAvailableAngleAndHeightSlot();
+            panelDistance = angleHeightElevation.distance;
+            panelArc = angleHeightElevation.angle;
+            panelY = angleHeightElevation.elevation;
+
+            //Debug.Log(gameObject.name + " got distance " + panelDistance + " and arc " + panelArc + " and y " + panelY);
+
+            // Position at startDistance from camera, at startArc along
+            // a circular arc, and reorient to face the camera
+            Vector3 planePosOffset = new Vector3(panelDistance * Mathf.Sin(panelArc * Mathf.Deg2Rad), 0.0f, panelDistance * Mathf.Cos(panelArc * Mathf.Deg2Rad));
+            transform.position = Camera.main.transform.position + planePosOffset;
+            // Set default height
+            transform.position = new Vector3(transform.position.x, panelY, transform.position.z);
+            transform.rotation = Quaternion.LookRotation(Camera.main.transform.position - transform.position) * Quaternion.Euler(90.0f, 0.0f, 0.0f);
+        }
 
         //// Move the highlight plane just in front of the movie texture plane
         //highlightPlane.position = planePosOffset + highlightPlaneDistanceOffset * (Camera.main.transform.position - transform.position);
@@ -47,6 +62,12 @@ public class GazeBasedVideoPlayer : MonoBehaviour
         myCollider = GetComponent<BoxCollider>();
 
         myAudioSource = GetComponent<AudioSource>();
+        myAudioSource.clip = movieTexture.audioClip;
+
+        // Adjust scale (keep height; scale width)
+        float aspectRatio = (float)movieTexture.width / (float)movieTexture.height;
+        float newWidthScale = transform.localScale.z * aspectRatio;
+        transform.localScale = new Vector3(newWidthScale, transform.localScale.y, transform.localScale.z);
     }
 	
 	void Update()
